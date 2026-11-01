@@ -25,6 +25,7 @@ export async function connectToMongoDB() {
 const mongoClient = await connectToMongoDB();
 const db = mongoClient.db("bookNook-db");
 const booksCollection = db.collection("books");
+const borrowsCollection = db.collection("borrows");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -61,6 +62,7 @@ app.post('/books', upload.single("image"), async (req, res) => {
     const data = {
       ...req.body,
       image: imageResult.data.display_url,
+      createdAt: new Date(),
     };
 
     const result = await booksCollection.insertOne(data);
@@ -96,7 +98,11 @@ app.post('/books', upload.single("image"), async (req, res) => {
     res.send(result);
   })
 
-  // app.get('/my-books')
+  app.get('/my-books/:email', async(req, res)=>{
+    const {email} = req.params;
+    const result = await booksCollection.find({email:email}).toArray();
+    res.send(result);
+  })
 
   app.get('/', async (req, res) => {
     res.send("Server is running fine...");
