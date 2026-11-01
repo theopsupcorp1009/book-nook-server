@@ -90,7 +90,13 @@ app.post('/books', upload.single("image"), async (req, res) => {
     res.send(result);
   })
 
-  app.get('/my-books')
+  app.get('/all-books/:id', async(req, res)=>{
+    const {id} = req.params;
+    const result = await booksCollection.findOne({_id: new ObjectId(id)});
+    res.send(result);
+  })
+
+  // app.get('/my-books')
 
   app.get('/', async (req, res) => {
     res.send("Server is running fine...");
