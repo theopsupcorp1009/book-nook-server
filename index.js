@@ -100,7 +100,23 @@ app.post('/books', upload.single("image"), async (req, res) => {
 
   app.get('/my-books/:email', async(req, res)=>{
     const {email} = req.params;
-    const result = await booksCollection.find({email:email}).toArray();
+    const result = await booksCollection.find({uploaderEmail:email}).toArray();
+    res.send(result);
+  })
+
+app.post('/borrows', async(req, res)=>{
+  const data = {
+    ...req.body,
+    borrowDate: new Date(),
+  };
+
+  const result = await borrowsCollection.insertOne(data);
+  res.send(result);
+})
+
+  app.get('/borrows/:email', async(req, res)=>{
+    const {email} = req.params;
+    const result = await borrowsCollection.find({borrowerEmail:email}).toArray();
     res.send(result);
   })
 
