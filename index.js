@@ -104,6 +104,16 @@ app.post('/books', upload.single("image"), async (req, res) => {
     res.send(result);
   })
 
+  app.patch('/my-books/:id', async(req, res)=>{
+    const {id} = req.params;
+    const data = req.body;
+    const result = await booksCollection.updateOne(
+      {_id: new ObjectId(id)},
+      {$set: data},
+    );
+    res.send(result);
+  })
+
 app.post('/borrows', async(req, res)=>{
   const data = {
     ...req.body,
