@@ -28,6 +28,32 @@ const booksCollection = db.collection("books");
 const borrowsCollection = db.collection("borrows");
 const categoriesCollection = db.collection("categories");
 
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send({ message: 'Unauthorized' })
+  }
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send({ message: 'Unauthorized' })
+  }
+
+  const JWKS = createRemoteJWKSet(new URL(`${process.env.BETTER_AUTH_URL}`));
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    next();
+  } catch (error) {
+    return res.status(500).send({ message: 'Internal Server Error' })
+  }
+
+}
+
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limit: {
@@ -35,7 +61,8 @@ const upload = multer({
   }
 });
 
-app.post('/books', upload.single("image"), async (req, res) => {
+app.post('/books', verifyToken, upload.single("image"), async (req, res) => {
+
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No image selected" });
@@ -75,51 +102,51 @@ app.post('/books', upload.single("image"), async (req, res) => {
   }
 });
 
-  app.get('/categories', async (req, res) => {
-    const result = await categoriesCollection.find().toArray();
-    res.send(result);
-  })
+app.get('/categories', async (req, res) => {
+  const result = await categoriesCollection.find().toArray();
+  res.send(result);
+})
 
-  app.get('/top-categories', async(req, res)=>{
+app.get('/top-categories', async (req, res) => {
   const result = await categoriesCollection.find().limit(4).toArray();
   res.send(result);
 })
 
 
-  app.get('/all-books', async(req, res)=>{
-    const result = await booksCollection.find().toArray();
-    res.send(result);
-  })
+app.get('/all-books', async (req, res) => {
+  const result = await booksCollection.find().toArray();
+  res.send(result);
+})
 
-  app.get('/all-books/:id', async(req, res)=>{
-    const {id} = req.params;
-    const result = await booksCollection.findOne({_id: new ObjectId(id)});
-    res.send(result);
-  })
+app.get('/all-books/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const result = await booksCollection.findOne({ _id: new ObjectId(id) });
+  res.send(result);
+})
 
-  app.get('/my-books/:email', async(req, res)=>{
-    const {email} = req.params;
-    const result = await booksCollection.find({uploaderEmail:email}).toArray();
-    res.send(result);
-  })
+app.get('/my-books/:email', verifyToken, async (req, res) => {
+  const { email } = req.params;
+  const result = await booksCollection.find({ uploaderEmail: email }).toArray();
+  res.send(result);
+})
 
-  app.patch('/my-books/:id', async(req, res)=>{
-    const {id} = req.params;
-    const data = req.body;
-    const result = await booksCollection.updateOne(
-      {_id: new ObjectId(id)},
-      {$set: data},
-    );
-    res.send(result);
-  })
+app.patch('/my-books/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  const result = await booksCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: data },
+  );
+  res.send(result);
+})
 
-   app.delete('/my-books/:id', async(req, res)=>{
-    const {id} = req.params;
-    const result = await booksCollection.deleteOne({_id: new ObjectId(id)});
-    res.send(result);
-  })
+app.delete('/my-books/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+})
 
-app.post('/borrows', async(req, res)=>{
+app.post('/borrows', verifyToken, async (req, res) => {
   const borrowDate = new Date();
   const returnDate = new Date(borrowDate);
   returnDate.setDate(returnDate.getDate() + 14);
@@ -134,23 +161,23 @@ app.post('/borrows', async(req, res)=>{
   res.send(result);
 })
 
-  app.get('/borrows/:email', async(req, res)=>{
-    const {email} = req.params;
-    const result = await borrowsCollection.find({borrowerEmail:email}).toArray();
-    res.send(result);
-  })
+app.get('/borrows/:email', verifyToken, async (req, res) => {
+  const { email } = req.params;
+  const result = await borrowsCollection.find({ borrowerEmail: email }).toArray();
+  res.send(result);
+})
 
-    app.delete('/borrows/:id', async(req, res)=>{
-    const {id} = req.params;
-    const result = await borrowsCollection.deleteOne({_id: new ObjectId(id)});
-    res.send(result);
-  })
+app.delete('/borrows/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const result = await borrowsCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+})
 
 
-  app.get('/', async (req, res) => {
-    res.send("Server is running fine...");
-  })
+app.get('/', async (req, res) => {
+  res.send("Server is running fine...");
+})
 
-  app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-  })
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+})
