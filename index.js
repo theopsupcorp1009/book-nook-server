@@ -114,6 +114,12 @@ app.post('/books', upload.single("image"), async (req, res) => {
     res.send(result);
   })
 
+   app.delete('/my-books/:id', async(req, res)=>{
+    const {id} = req.params;
+    const result = await booksCollection.deleteOne({_id: new ObjectId(id)});
+    res.send(result);
+  })
+
 app.post('/borrows', async(req, res)=>{
   const data = {
     ...req.body,
