@@ -26,6 +26,7 @@ const mongoClient = await connectToMongoDB();
 const db = mongoClient.db("bookNook-db");
 const booksCollection = db.collection("books");
 const borrowsCollection = db.collection("borrows");
+const categoriesCollection = db.collection("categories");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -74,18 +75,16 @@ app.post('/books', upload.single("image"), async (req, res) => {
   }
 });
 
-
-  const categories = [
-    "Fiction",
-    "Science",
-    "History",
-    "Kids",
-    "Others",
-  ];
-
   app.get('/categories', async (req, res) => {
-    res.send(categories);
+    const result = await categoriesCollection.find().toArray();
+    res.send(result);
   })
+
+  app.get('/top-categories', async(req, res)=>{
+  const result = await categoriesCollection.find().limit(4).toArray();
+  res.send(result);
+})
+
 
   app.get('/all-books', async(req, res)=>{
     const result = await booksCollection.find().toArray();
