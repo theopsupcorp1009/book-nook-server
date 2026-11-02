@@ -121,9 +121,14 @@ app.post('/books', upload.single("image"), async (req, res) => {
   })
 
 app.post('/borrows', async(req, res)=>{
+  const borrowDate = new Date();
+  const returnDate = new Date(borrowDate);
+  returnDate.setDate(returnDate.getDate() + 14);
+
   const data = {
     ...req.body,
-    borrowDate: new Date(),
+    borrowDate,
+    returnDate
   };
 
   const result = await borrowsCollection.insertOne(data);
@@ -135,6 +140,13 @@ app.post('/borrows', async(req, res)=>{
     const result = await borrowsCollection.find({borrowerEmail:email}).toArray();
     res.send(result);
   })
+
+    app.delete('/borrows/:id', async(req, res)=>{
+    const {id} = req.params;
+    const result = await borrowsCollection.deleteOne({_id: new ObjectId(id)});
+    res.send(result);
+  })
+
 
   app.get('/', async (req, res) => {
     res.send("Server is running fine...");
