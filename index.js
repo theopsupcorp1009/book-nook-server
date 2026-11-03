@@ -63,8 +63,26 @@ const upload = multer({
 
 app.post('/books', verifyToken, upload.single("image"), async (req, res) => {
   try {
+    const { title, author } = req.body;
+
+    const existingBooks = await booksCollection.find().toArray();
+
+    const existingBook = existingBooks.find(
+      (book) =>
+        book.title.trim().toLowerCase() === title.trim().toLowerCase() &&
+        book.author.trim().toLowerCase() === author.trim().toLowerCase()
+    );
+
+    if (existingBook) {
+      return res.status(409).json({
+        message: "This book already exists!",
+      });
+    }
+
     if (!req.file) {
-      return res.status(400).json({ message: "No image selected" });
+      return res.status(400).json({
+        message: "No image selected",
+      });
     }
 
     const base64Image = req.file.buffer.toString("base64");
@@ -88,6 +106,9 @@ app.post('/books', verifyToken, upload.single("image"), async (req, res) => {
 
     const data = {
       ...req.body,
+      title: title.trim(),
+      author: author.trim(),
+      totalCopies: Number(req.body.totalCopies),
       image: imageResult.data.display_url,
       createdAt: new Date(),
     };
@@ -141,16 +162,55 @@ app.get('/my-books/:email', verifyToken, async (req, res) => {
 app.patch('/my-books/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   const data = req.body;
-  const result = await booksCollection.updateOne(
-    { _id: new ObjectId(id) },
-    { $set: data },
-  );
 
-  if (result.matchedCount === 0) {
-    return res.status(404).send({ message: "Book not found" });
+  try {
+    const currentBook = await booksCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    const title = data.title?.trim().toLowerCase() || currentBook.title.trim().toLowerCase();
+    const author = data.author?.trim().toLowerCase() || currentBook.author.trim().toLowerCase();
+
+    const existingBooks = await booksCollection.find().toArray();
+
+    const existingBook = existingBooks.find(
+      (book) =>
+        book._id.toString() !== id &&
+        book.title.trim().toLowerCase() === title &&
+        book.author.trim().toLowerCase() === author
+    );
+
+    if (existingBook) {
+      return res.status(409).json({
+        message: "This book already exists!",
+      });
+    }
+
+    data.title = title;
+    data.author = author;
+
+    if (data.totalCopies !== undefined) {
+      data.totalCopies = Number(data.totalCopies);
+    }
+
+    const result = await booksCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: data }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(200).json({
+        message: "No changes detected",
+      });
+    }
+
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
   }
-
-  res.status(200).send(result);
 });
 
 app.delete('/my-books/:id', verifyToken, async (req, res) => {
@@ -165,18 +225,65 @@ app.delete('/my-books/:id', verifyToken, async (req, res) => {
 });
 
 app.post('/borrows', verifyToken, async (req, res) => {
-  const borrowDate = new Date();
-  const returnDate = new Date(borrowDate);
-  returnDate.setDate(returnDate.getDate() + 14);
+  try {
+    const { bookId, borrowerEmail } = req.body;
 
-  const data = {
-    ...req.body,
-    borrowDate,
-    returnDate
-  };
+    const existingBorrow = await borrowsCollection.findOne({
+      bookId,
+      borrowerEmail,
+    });
 
-  const result = await borrowsCollection.insertOne(data);
-  res.status(201).send(result);
+    if (existingBorrow) {
+      return res.status(409).json({
+        message: "You have already borrowed this book!",
+      });
+    }
+
+    const book = await booksCollection.findOne({
+      _id: new ObjectId(bookId),
+    });
+
+    if (book.uploaderEmail === borrowerEmail) {
+      return res.status(403).json({
+        message: "You cannot borrow your own book!",
+      });
+    }
+
+    const updateResult = await booksCollection.updateOne(
+      {
+        _id: new ObjectId(bookId),
+        totalCopies: { $gt: 0 },
+      },
+      {
+        $inc: { totalCopies: -1 },
+      }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(400).json({
+        message: "No copies available!",
+      });
+    }
+
+    const borrowDate = new Date();
+    const returnDate = new Date(borrowDate);
+    returnDate.setDate(returnDate.getDate() + 14);
+
+    const data = {
+      ...req.body,
+      borrowDate,
+      returnDate,
+    };
+
+    const result = await borrowsCollection.insertOne(data);
+
+    res.status(201).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 });
 
 app.get('/borrows/:email', verifyToken, async (req, res) => {
@@ -187,11 +294,25 @@ app.get('/borrows/:email', verifyToken, async (req, res) => {
 
 app.delete('/borrows/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
-  const result = await borrowsCollection.deleteOne({ _id: new ObjectId(id) });
+
+  const borrow = await borrowsCollection.findOne({
+    _id: new ObjectId(id),
+  });
+
+  const result = await borrowsCollection.deleteOne({
+    _id: new ObjectId(id),
+  });
 
   if (result.deletedCount === 0) {
-    return res.status(404).send({ message: "Borrow record not found" });
+    return res.status(404).send({
+      message: "Borrow record not found",
+    });
   }
+
+  await booksCollection.updateOne(
+    { _id: new ObjectId(borrow.bookId) },
+    { $inc: { totalCopies: 1 } }
+  );
 
   res.status(200).send(result);
 });
