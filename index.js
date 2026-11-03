@@ -62,7 +62,6 @@ const upload = multer({
 });
 
 app.post('/books', verifyToken, upload.single("image"), async (req, res) => {
-
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No image selected" });
@@ -104,31 +103,40 @@ app.post('/books', verifyToken, upload.single("image"), async (req, res) => {
 
 app.get('/categories', async (req, res) => {
   const result = await categoriesCollection.find().toArray();
-  res.send(result);
-})
+  res.status(200).send(result);
+});
 
 app.get('/top-categories', async (req, res) => {
   const result = await categoriesCollection.find().limit(4).toArray();
-  res.send(result);
-})
-
+  res.status(200).send(result);
+});
 
 app.get('/all-books', async (req, res) => {
   const result = await booksCollection.find().toArray();
-  res.send(result);
-})
+  res.status(200).send(result);
+});
 
 app.get('/all-books/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid book ID" });
+  }
+
   const result = await booksCollection.findOne({ _id: new ObjectId(id) });
-  res.send(result);
-})
+
+  if (!result) {
+    return res.status(404).json({ message: "Book not found" });
+  }
+
+  res.status(200).send(result);
+});
 
 app.get('/my-books/:email', verifyToken, async (req, res) => {
   const { email } = req.params;
   const result = await booksCollection.find({ uploaderEmail: email }).toArray();
-  res.send(result);
-})
+  res.status(200).send(result);
+});
 
 app.patch('/my-books/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
@@ -137,14 +145,24 @@ app.patch('/my-books/:id', verifyToken, async (req, res) => {
     { _id: new ObjectId(id) },
     { $set: data },
   );
-  res.send(result);
-})
+
+  if (result.matchedCount === 0) {
+    return res.status(404).send({ message: "Book not found" });
+  }
+
+  res.status(200).send(result);
+});
 
 app.delete('/my-books/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
-  res.send(result);
-})
+
+  if (result.deletedCount === 0) {
+    return res.status(404).send({ message: "Book not found" });
+  }
+
+  res.status(200).send(result);
+});
 
 app.post('/borrows', verifyToken, async (req, res) => {
   const borrowDate = new Date();
@@ -158,25 +176,29 @@ app.post('/borrows', verifyToken, async (req, res) => {
   };
 
   const result = await borrowsCollection.insertOne(data);
-  res.send(result);
-})
+  res.status(201).send(result);
+});
 
 app.get('/borrows/:email', verifyToken, async (req, res) => {
   const { email } = req.params;
   const result = await borrowsCollection.find({ borrowerEmail: email }).toArray();
-  res.send(result);
-})
+  res.status(200).send(result);
+});
 
 app.delete('/borrows/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   const result = await borrowsCollection.deleteOne({ _id: new ObjectId(id) });
-  res.send(result);
-})
 
+  if (result.deletedCount === 0) {
+    return res.status(404).send({ message: "Borrow record not found" });
+  }
+
+  res.status(200).send(result);
+});
 
 app.get('/', async (req, res) => {
-  res.send("Server is running fine...");
-})
+  res.status(200).send("Server is running fine...");
+});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
