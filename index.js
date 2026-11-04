@@ -63,14 +63,15 @@ const upload = multer({
 
 app.post('/books', verifyToken, upload.single("image"), async (req, res) => {
   try {
-    const { title, author } = req.body;
+    const { title, author, uploaderEmail } = req.body;
 
     const existingBooks = await booksCollection.find().toArray();
 
     const existingBook = existingBooks.find(
       (book) =>
         book.title.trim().toLowerCase() === title.trim().toLowerCase() &&
-        book.author.trim().toLowerCase() === author.trim().toLowerCase()
+        book.author.trim().toLowerCase() === author.trim().toLowerCase() &&
+        book.uploaderEmail.trim().toLowerCase() === uploaderEmail.trim().toLowerCase()
     );
 
     if (existingBook) {
