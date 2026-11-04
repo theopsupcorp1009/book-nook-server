@@ -169,16 +169,16 @@ app.patch('/my-books/:id', verifyToken, async (req, res) => {
       _id: new ObjectId(id),
     });
 
-    const title = data.title?.trim().toLowerCase() || currentBook.title.trim().toLowerCase();
-    const author = data.author?.trim().toLowerCase() || currentBook.author.trim().toLowerCase();
+    const title = data.title?.trim() || currentBook.title.trim();
+    const author = data.author?.trim() || currentBook.author.trim();
 
     const existingBooks = await booksCollection.find().toArray();
 
     const existingBook = existingBooks.find(
       (book) =>
         book._id.toString() !== id &&
-        book.title.trim().toLowerCase() === title &&
-        book.author.trim().toLowerCase() === author
+        book.title.trim().toLowerCase() === title.toLowerCase() &&
+        book.author.trim().toLowerCase() === author.toLowerCase()
     );
 
     if (existingBook) {
