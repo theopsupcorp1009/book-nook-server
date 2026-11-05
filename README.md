@@ -2,10 +2,10 @@
 
 The REST API behind **BookNook**, a small online library. Built with **Node.js**, **Express 5**, and **MongoDB**, it manages books and borrow records, uploads cover images to imgbb, tracks available copies, and protects private routes with JWT verification against the client's better-auth keys.
 
-🔗 **Live API:** [book-nook-server-iota.vercel.app](https://book-nook-server-iota.vercel.app/)
-📦 **Server Repository:** [theopsupcorp1009/book-nook-server](https://github.com/theopsupcorp1009/book-nook-server)
-🌐 **Frontend App:** [book-nook-indol.vercel.app](https://book-nook-indol.vercel.app/)
-📦 **Frontend Repository:** [theopsupcorp1009/book-nook](https://github.com/theopsupcorp1009/book-nook)
+- 🔗 **Live API:** [book-nook-server-iota.vercel.app](https://book-nook-server-iota.vercel.app/)
+- 📦 **Server Repository:** [theopsupcorp1009/book-nook-server](https://github.com/theopsupcorp1009/book-nook-server)
+- 🌐 **Frontend App:** [book-nook-indol.vercel.app](https://book-nook-indol.vercel.app/)
+- 📦 **Frontend Repository:** [theopsupcorp1009/book-nook](https://github.com/theopsupcorp1009/book-nook)
 
 ---
 
