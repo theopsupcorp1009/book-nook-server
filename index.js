@@ -5,10 +5,10 @@ import multer from 'multer';
 import 'dotenv/config';
 
 const app = express();
-const port = process.env.PORT || 5000;
-
 app.use(cors());
 app.use(express.json());
+
+const port = process.env.PORT || 5000;
 
 const client = new MongoClient(process.env.MONGODB_URL);
 
