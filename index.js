@@ -289,7 +289,24 @@ app.post('/borrows', verifyToken, async (req, res) => {
 
 app.get('/borrows/:email', verifyToken, async (req, res) => {
   const { email } = req.params;
-  const result = await borrowsCollection.find({ borrowerEmail: email }).toArray();
+
+  const borrows = await borrowsCollection
+    .find({ borrowerEmail: email })
+    .toArray();
+
+  const result = await Promise.all(
+    borrows.map(async (borrow) => {
+      const book = await booksCollection.findOne({
+        _id: new ObjectId(borrow.bookId),
+      });
+
+      return {
+        ...borrow,
+        book,
+      };
+    })
+  );
+
   res.status(200).send(result);
 });
 
